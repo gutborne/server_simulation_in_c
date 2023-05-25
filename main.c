@@ -3,6 +3,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#define N 10; //constant of the program that indicate the number of
+//workers threads
+
+struct requests_{
+    int digit_pi;
+    int time_waiting;
+}requests;
+
+
+/**
+ * * @brief this function will receive the requests, instantiate the worker threads and
+ * the dispatcher thread to help the server to process the requests of the clients.
+ * @param fp 
+ * @param n_threads 
+ */
+void server(FILE *fp, int n_threads){
+
+}
 
 /**
  * @brief This main function will generate the file with the
