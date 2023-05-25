@@ -15,11 +15,11 @@ struct requests_{
 /**
  * * @brief this function will receive the requests, instantiate the worker threads and
  * the dispatcher thread to help the server to process the requests of the clients.
- * @param fp 
- * @param n_threads 
+ * @param fp //pinter to the archive
+ * @param n_threads //number of worker threads
  */
-void server(FILE *fp, int n_threads){
-
+void server(FILE *fp){
+    pthread_create();
 }
 
 /**
