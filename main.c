@@ -3,12 +3,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+
+
 /**
  * @brief This main function will generate the file with the
  * requests for the server
  * @return int 
  */
-
 int main(){
     srand(time(0));
     FILE *fp = fopen("requests.txt", "w");
