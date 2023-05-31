@@ -3,18 +3,30 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
- #define N_WTHREADS  10 //constant of the program that indicate the number of
+#include <unistd.h>
+#define n_requests 10 //number of requests
+#define time_request 100000//100000 microseconds = 100 milliseconds
+#define N_WTHREADS  5 //constant of the program that indicates the number of
 //workers threads
+ 
 
 /**
  * @brief 
  * 
  */
 struct requests_{
-    int digit_pi;
+    int digits_pi;
     int time_waiting;
 }requests;
 
+/**
+ * @brief 
+ * 
+ * @param requests 
+ */
+void calculate_pi(void* requests){
+
+}
 /**
  * @brief 
  * 
@@ -23,10 +35,12 @@ struct requests_{
 void* dispatcher_thread_function(void *fp){
     pthread_t threads[N_WTHREADS];
     FILE *requests_file = fp;
-    int digits, time_waiting;
+    int digits, time_waiting, cont = n_requests;
     if(requests_file != NULL){
-        while(fscanf(fp, "%d;%d", &digits, &time_waiting) != EOF){
-            printf("%d %d\n", digits, time_waiting);    
+        while(fscanf(fp, "%d;%d", &digits, &time_waiting) != EOF){  
+            usleep(time_request);
+            cont--;
+            printf("%d %d cont = %d\n", digits, time_waiting, cont);    
         }
     }else{
         printf("ERROR IN OPEN THE FILE!");
@@ -59,13 +73,12 @@ void server(FILE *fp){
  * requests for the server
  * @return int 
  */
-//inicio: 0x7ff8a890fa90
 int main(){
     srand(time(0));
     FILE *fp = fopen("requests.txt", "w");
     if(fp != NULL){
         int digits = 0, time_waiting = 0;
-        for(int i = 0; i < 100; i++){
+        for(int i = 0; i < n_requests; i++){
             digits = (rand() % (100 - 10 + 1)) + 10;//PI's numbers of digits 
             time_waiting = (rand() % (1500 - 500 + 1)) + 500;//time of waiting
             fprintf(fp, "%d;%d\n", digits, time_waiting);
