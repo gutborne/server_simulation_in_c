@@ -14,7 +14,8 @@
  * @brief 
  * 
  */
-struct requests_{
+typedef struct requests_{
+    char* name;
     int digits_pi;
     int time_waiting;
 }requests;
@@ -24,9 +25,10 @@ struct requests_{
  * 
  * @param requests 
  */
-void calculate_pi(void* requests){
+void* calculate_pi(void* rqts){
+    requests* rqts_pt = (requests*)rqts;    
 
-}
+}   
 /**
  * @brief 
  * 
@@ -35,17 +37,26 @@ void calculate_pi(void* requests){
 void* dispatcher_thread_function(void *fp){
     pthread_t threads[N_WTHREADS];
     FILE *requests_file = fp;
-    int digits, time_waiting, cont = n_requests;
+    int digits, time_waiting, cont = n_requests, i = 0;
+    requests* rqts_pt = malloc(sizeof(requests));
     if(requests_file != NULL){
-        while(fscanf(fp, "%d;%d", &digits, &time_waiting) != EOF){  
+        while(fscanf(fp, "%d;%d", rqts_pt->digits_pi, rqts_pt->time_waiting) != EOF){
             usleep(time_request);
+            if(pthread_create(threads + i, NULL, calculate_pi, (void*)rqts_pt) != 0){
+                perror(-1);
+            }
+            if(pthread_join(threads +  i, NULL) != 0){
+                return -1;
+            }  
             cont--;
+            i++;
             printf("%d %d cont = %d\n", digits, time_waiting, cont);    
         }
     }else{
         printf("ERROR IN OPEN THE FILE!");
     }
     pthread_exit(NULL);
+    return NULL;
 }
 
 
