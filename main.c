@@ -4,6 +4,8 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#define TRUE 1
+#define FALSE 0
 #define n_requests 10 //number of requests
 #define time_request 100000//100000 microseconds = 100 milliseconds
 #define N_WTHREADS  5 //constant of the program that indicates the number of
@@ -28,6 +30,19 @@ typedef struct requests_{
 void* calculate_pi(void* rqts){
     requests* rqts_pt = (requests*)rqts;    
 
+}
+int check_thread_is_free(pthread_t threads[]){
+    int i = 0;
+    for(int i; i < N_WTHREADS;){
+        int status = pthread_kill(threads[i], 0);
+        if (status == 0) {
+            printf("Thread is occupied.\n");
+            i++;
+        } else if (status == ESRCH) {
+            printf("Thread is free.\n");
+            return i;
+        }
+    }
 }   
 /**
  * @brief 
@@ -37,20 +52,23 @@ void* calculate_pi(void* rqts){
 void* dispatcher_thread_function(void *fp){
     pthread_t threads[N_WTHREADS];
     FILE *requests_file = fp;
-    int digits, time_waiting, cont = n_requests, i = 0;
+    int digits, time_waiting, cont = n_requests, ct_threads = 0, flag = 0;
     requests* rqts_pt = malloc(sizeof(requests));
     if(requests_file != NULL){
         while(fscanf(fp, "%d;%d", rqts_pt->digits_pi, rqts_pt->time_waiting) != EOF){
-            usleep(time_request);
-            if(pthread_create(threads + i, NULL, calculate_pi, (void*)rqts_pt) != 0){
-                perror(-1);
+            if(ct_threads < N_WTHREADS){
+                if(pthread_create(&threads[ct_threads], NULL, calculate_pi, (void*)rqts_pt) != 0){
+                    perror(-1);
+                }
+                if(pthread_join(threads[ct_threads], NULL) != 0){
+                    return -1;
+                }  
+                usleep(time_request);
+                cont--;
+                printf("%d %d cont = %d\n", digits, time_waiting, cont);
+            }else{
+                ct_threads = check_thread_is_free(&threads);
             }
-            if(pthread_join(threads +  i, NULL) != 0){
-                return -1;
-            }  
-            cont--;
-            i++;
-            printf("%d %d cont = %d\n", digits, time_waiting, cont);    
         }
     }else{
         printf("ERROR IN OPEN THE FILE!");
