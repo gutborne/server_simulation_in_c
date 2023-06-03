@@ -20,6 +20,8 @@ typedef struct requests_{
     char* name;
     int digits_pi;
     int time_waiting;
+    int n_rqts_processed;
+    int cur_request;
 }requests;
 
 /**
@@ -28,21 +30,33 @@ typedef struct requests_{
  * @param requests 
  */
 void* calculate_pi(void* rqts){
-    requests* rqts_pt = (requests*)rqts;    
-
+    requests* rqts_pt = (requests*)rqts;
+    FILE* fp = fopen(rqts_pt->name, "a");
+    int result;
+    if(fp != NULL){
+        usleep(rqts_pt->time_waiting);
+        result = rqts_pt->digits_pi * rqts_pt->time_waiting;
+        fprintf(fp, "requisição %d: time_waiting = %d results %d", rqts_pt->cur_request, rqts_pt->digits_pi, rqts_pt->time_waiting, result);
+    }else{
+        printf("ERROR IN OPEN THE FILE!");
+    }
+    return NULL;
 }
 int check_thread_is_free(pthread_t threads[]){
     int i = 0;
+    int status;
     for(int i; i < N_WTHREADS;){
-        int status = pthread_kill(threads[i], 0);
+        status = pthread_kill(threads[i], 0);
         if (status == 0) {
             printf("Thread is occupied.\n");
             i++;
-        } else if (status == ESRCH) {
+        }else if (status == ESRCH) {
             printf("Thread is free.\n");
             return i;
         }
     }
+    if(i == N_WTHREADS)
+        check_thread_is_free(threads);
 }   
 /**
  * @brief 
@@ -52,27 +66,50 @@ int check_thread_is_free(pthread_t threads[]){
 void* dispatcher_thread_function(void *fp){
     pthread_t threads[N_WTHREADS];
     FILE *requests_file = fp;
-    int digits, time_waiting, cont = n_requests, ct_threads = 0, flag = 0;
+    int ct_threads = 0, flag = TRUE, digits = 0, time_waiting = 0;
+    int cur_processed_rqt = 0;//counter that will indicate the number of the current
+    //request to be read 
     requests* rqts_pt = malloc(sizeof(requests));
+    rqts_pt->name = malloc(20*sizeof(char));
     if(requests_file != NULL){
-        while(fscanf(fp, "%d;%d", rqts_pt->digits_pi, rqts_pt->time_waiting) != EOF){
-            if(ct_threads < N_WTHREADS){
+        while(fscanf(fp, "%d;%d", digits, time_waiting) != EOF){
+            if((ct_threads < N_WTHREADS) && (flag == TRUE)){
+                sprintf(rqts_pt->name, "%s%d%s", "thread", ct_threads, ".txt");
+                rqts_pt->cur_request = cur_processed_rqt;
+                rqts_pt->digits_pi=digits;
+                rqts_pt->time_waiting = time_waiting;
                 if(pthread_create(&threads[ct_threads], NULL, calculate_pi, (void*)rqts_pt) != 0){
-                    perror(-1);
+                    perror("-1");
                 }
                 if(pthread_join(threads[ct_threads], NULL) != 0){
-                    return -1;
+                    return (void*)-1;
                 }  
+                ct_threads++;
+                cur_processed_rqt++;
                 usleep(time_request);
-                cont--;
-                printf("%d %d cont = %d\n", digits, time_waiting, cont);
+                printf("%d %d\n", digits, time_waiting);
             }else{
-                ct_threads = check_thread_is_free(&threads);
+                flag = FALSE;
+                ct_threads = check_thread_is_free(threads);
+                sprintf(rqts_pt->name, "%s%d%s", "thread", ct_threads, ".txt");
+                rqts_pt->digits_pi=digits;
+                rqts_pt->time_waiting = time_waiting;
+                if(pthread_create(&threads[ct_threads], NULL, calculate_pi, (void*)rqts_pt) != 0){
+                    perror("-1");
+                }
+                if(pthread_join(threads[ct_threads], NULL) != 0){
+                    return (void*)-1;
+                }
+                cur_processed_rqt++;  
+                usleep(time_request);
+                printf("%d %d\n", rqts_pt->digits_pi, rqts_pt->time_waiting);
             }
         }
     }else{
         printf("ERROR IN OPEN THE FILE!");
     }
+    free(rqts_pt->name);
+    free(rqts_pt);
     pthread_exit(NULL);
     return NULL;
 }
@@ -112,7 +149,6 @@ int main(){
             time_waiting = (rand() % (1500 - 500 + 1)) + 500;//time of waiting
             fprintf(fp, "%d;%d\n", digits, time_waiting);
         }
-
         fclose(fp);
         fp = fopen("requests.txt", "r");
         if(fp != NULL)
