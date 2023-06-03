@@ -31,15 +31,16 @@ typedef struct requests_{
  */
 void* calculate_pi(void* rqts){
     requests* rqts_pt = (requests*)rqts;
-    FILE* fp = fopen(rqts_pt->name, "a");
+    FILE* fp = fopen(rqts_pt->name, "w");
     int result;
     if(fp != NULL){
         usleep(rqts_pt->time_waiting);
         result = rqts_pt->digits_pi * rqts_pt->time_waiting;
-        fprintf(fp, "requisição %d: time_waiting = %d results %d", rqts_pt->cur_request, rqts_pt->digits_pi, rqts_pt->time_waiting, result);
+        fprintf(fp, "requisição %d: digits(%d) * time_waiting(%d) results %d\n", rqts_pt->cur_request, rqts_pt->digits_pi, rqts_pt->time_waiting, result);
     }else{
         printf("ERROR IN OPEN THE FILE!");
     }
+    fclose(fp);
     return NULL;
 }
 int check_thread_is_free(pthread_t threads[]){
@@ -72,7 +73,7 @@ void* dispatcher_thread_function(void *fp){
     requests* rqts_pt = malloc(sizeof(requests));
     rqts_pt->name = malloc(20*sizeof(char));
     if(requests_file != NULL){
-        while(fscanf(fp, "%d;%d", digits, time_waiting) != EOF){
+        while(fscanf(fp, "%d;%d", &digits, &time_waiting) != EOF){
             if((ct_threads < N_WTHREADS) && (flag == TRUE)){
                 sprintf(rqts_pt->name, "%s%d%s", "thread", ct_threads, ".txt");
                 rqts_pt->cur_request = cur_processed_rqt;
@@ -87,13 +88,14 @@ void* dispatcher_thread_function(void *fp){
                 ct_threads++;
                 cur_processed_rqt++;
                 usleep(time_request);
-                printf("%d %d\n", digits, time_waiting);
+                //printf("%d %d\n", digits, time_waiting);
             }else{
                 flag = FALSE;
                 ct_threads = check_thread_is_free(threads);
                 sprintf(rqts_pt->name, "%s%d%s", "thread", ct_threads, ".txt");
                 rqts_pt->digits_pi=digits;
                 rqts_pt->time_waiting = time_waiting;
+                rqts_pt->cur_request = cur_processed_rqt;
                 if(pthread_create(&threads[ct_threads], NULL, calculate_pi, (void*)rqts_pt) != 0){
                     perror("-1");
                 }
@@ -102,7 +104,7 @@ void* dispatcher_thread_function(void *fp){
                 }
                 cur_processed_rqt++;  
                 usleep(time_request);
-                printf("%d %d\n", rqts_pt->digits_pi, rqts_pt->time_waiting);
+                //printf("%d %d\n", rqts_pt->digits_pi, rqts_pt->time_waiting);
             }
         }
     }else{
@@ -158,5 +160,6 @@ int main(){
     }else{
         printf("ERROR IN OPEN THE FILE!");
     }
+    fclose(fp);
     return 0;
 }
