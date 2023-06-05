@@ -31,7 +31,7 @@ typedef struct requests_{
  */
 void* calculate_pi(void* rqts){
     requests* rqts_pt = (requests*)rqts;
-    FILE* fp = fopen(rqts_pt->name, "w");
+    FILE* fp = fopen(rqts_pt->name, "a");
     int result;
     if(fp != NULL){
         usleep(rqts_pt->time_waiting);
