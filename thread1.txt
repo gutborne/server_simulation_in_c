@@ -1,0 +1,2 @@
+requisição 1: digits(98) * time_waiting(1325) results 129850
+requisição 1: digits(66) * time_waiting(1459) results 96294
