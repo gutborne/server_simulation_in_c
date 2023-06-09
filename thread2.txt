@@ -1,7 +1,1 @@
-requisição 9: digits(95) * time_waiting(1380) results 131100
-requisição 2: digits(57) * time_waiting(985) results 56145
-requisição 5: digits(53) * time_waiting(1388) results 73564
-requisição 6: digits(54) * time_waiting(1433) results 77382
-requisição 7: digits(32) * time_waiting(697) results 22304
-requisição 8: digits(38) * time_waiting(1093) results 41534
-requisição 9: digits(83) * time_waiting(1082) results 89806
+requisição 2: digits(86) * time_waiting(1009) results 86774

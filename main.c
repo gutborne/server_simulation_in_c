@@ -4,11 +4,12 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <signal.h>
 #define TRUE 1
 #define FALSE 0
-#define n_requests 10 //number of requests
+#define n_requests 100 //number of requests
 #define time_request 100000//100000 microseconds = 100 milliseconds
-#define N_WTHREADS  5 //constant of the program that indicates the number of
+#define N_WTHREADS  1 //constant of the program that indicates the number of
 //workers threads
  
 
@@ -46,7 +47,7 @@ void* calculate_pi(void* rqts){
 int check_thread_is_free(pthread_t threads[]){
     int i = 0;
     int status;
-    for(int i; i < N_WTHREADS;){
+    for(i; i < N_WTHREADS;){
         status = pthread_kill(threads[i], 0);
         if (status == 0) {
             printf("Thread is occupied.\n");
@@ -58,20 +59,43 @@ int check_thread_is_free(pthread_t threads[]){
     }
     if(i == N_WTHREADS)
         check_thread_is_free(threads);
-}   
+}
+
+/**
+ * @brief the aim of this function is clean the requests of the worker thread files
+ * if they were already created in previous executions of this program in order to get
+ * rid of these previous ones and maintain just the current ones.
+ */
+void clean_files_wthreads(){
+    int counter = 0;
+    char* thread_name = malloc(20*sizeof(char));
+    FILE* fp;
+    for(counter; counter < N_WTHREADS;){
+        sprintf(thread_name, "%s%d%s", "thread", counter, ".txt");
+        fp = fopen(thread_name, "w");
+        if(fp != NULL){
+            counter++;
+        }else{
+            printf("ERROR IN OPEN THE FILE!");
+        }
+    }
+    fclose(fp);
+}
+
 /**
  * @brief 
  * 
  * @param fp 
  */
 void* dispatcher_thread_function(void *fp){
-    pthread_t threads[N_WTHREADS];
+    pthread_t worker_threads[N_WTHREADS];
     FILE *requests_file = fp;
-    int ct_threads = 0, flag = TRUE, digits = 0, time_waiting = 0;
+    int ct_threads = 0, flag = TRUE, digits = 0, time_waiting = 0, c = 0;
     int cur_processed_rqt = 0;//counter that will indicate the number of the current
     //request to be read 
     requests* rqts_pt = malloc(sizeof(requests));
     rqts_pt->name = malloc(20*sizeof(char));
+    clean_files_wthreads();
     if(requests_file != NULL){
         while(fscanf(fp, "%d;%d", &digits, &time_waiting) != EOF){
             if((ct_threads < N_WTHREADS) && (flag == TRUE)){
@@ -79,28 +103,22 @@ void* dispatcher_thread_function(void *fp){
                 rqts_pt->cur_request = cur_processed_rqt;
                 rqts_pt->digits_pi=digits;
                 rqts_pt->time_waiting = time_waiting;
-                if(pthread_create(&threads[ct_threads], NULL, calculate_pi, (void*)rqts_pt) != 0){
+                if(pthread_create(&worker_threads[ct_threads], NULL, calculate_pi, (void*)rqts_pt) != 0){
                     perror("-1");
                 }
-                if(pthread_join(threads[ct_threads], NULL) != 0){
-                    return (void*)-1;
-                }  
                 ct_threads++;
                 cur_processed_rqt++;
                 usleep(time_request);
                 //printf("%d %d\n", digits, time_waiting);
             }else{
                 flag = FALSE;
-                ct_threads = check_thread_is_free(threads);
-                sprintf(rqts_pt->name, "%s%d%s", "thread", ct_threads, ".txt");
+                c = check_thread_is_free(worker_threads);
+                sprintf(rqts_pt->name, "%s%d%s", "thread", c, ".txt");
                 rqts_pt->digits_pi=digits;
                 rqts_pt->time_waiting = time_waiting;
                 rqts_pt->cur_request = cur_processed_rqt;
-                if(pthread_create(&threads[ct_threads], NULL, calculate_pi, (void*)rqts_pt) != 0){
+                if(pthread_create(&worker_threads[c], NULL, calculate_pi, (void*)rqts_pt) != 0){
                     perror("-1");
-                }
-                if(pthread_join(threads[ct_threads], NULL) != 0){
-                    return (void*)-1;
                 }
                 cur_processed_rqt++;  
                 usleep(time_request);
