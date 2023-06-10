@@ -7,9 +7,9 @@
 #include <signal.h>
 #define TRUE 1
 #define FALSE 0
-#define n_requests 20 //number of requests
+#define n_requests 100 //number of requests
 #define time_request 100000//100000 microseconds = 100 milliseconds
-#define N_WTHREADS  3 //constant of the program that indicates the number of
+#define N_WTHREADS  20 //constant of the program that indicates the number of
 //workers threads
  
 
@@ -104,9 +104,8 @@ void* dispatcher_thread_function(void *fp){
                 if(pthread_create(&worker_threads[ct_threads], NULL, calculate_pi, (void*)rqts_pt) != 0){
                     perror("-1");
                 }
+                pthread_join(worker_threads[ct_threads], NULL);
                 ct_threads++;
-                cur_processed_rqt++;
-                usleep(time_request);
                 //printf("%d %d\n", digits, time_waiting);
             }else{
                 flag = FALSE;
@@ -118,10 +117,12 @@ void* dispatcher_thread_function(void *fp){
                 if(pthread_create(&worker_threads[c], NULL, calculate_pi, (void*)rqts_pt) != 0){
                     perror("-1");
                 }
-                cur_processed_rqt++;  
-                usleep(time_request);
-                //printf("%d %d\n", rqts_pt->digits_pi, rqts_pt->time_waiting);
+                /*if(cur_processed_rqt == n_requests - 1){
+                    pthread_join(worker_threads[c], NULL);
+                }*/
             }
+            cur_processed_rqt++;
+            usleep(time_request);
         }
     }else{
         printf("ERROR IN OPEN THE FILE!");
@@ -150,6 +151,7 @@ void server(FILE *fp){
         printf("DISPATCHER THREAD CREATED WITH SUCCESS!\n");//if r is equal to 0
     }
     pthread_join(dispatcher, NULL);
+    pthread_exit(NULL);
 }
 
 /**
