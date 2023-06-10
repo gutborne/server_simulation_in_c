@@ -45,7 +45,7 @@ void* calculate_pi(void* rqts){
     return NULL;
 }
 int check_thread_is_free(pthread_t threads[]){
-    int i = 0;
+    int i = (rand() % N_WTHREADS);
     int status;
     for(i; i < N_WTHREADS;){
         status = pthread_kill(threads[i], 0);
