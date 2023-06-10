@@ -7,9 +7,9 @@
 #include <signal.h>
 #define TRUE 1
 #define FALSE 0
-#define n_requests 100 //number of requests
+#define n_requests 20 //number of requests
 #define time_request 100000//100000 microseconds = 100 milliseconds
-#define N_WTHREADS  1 //constant of the program that indicates the number of
+#define N_WTHREADS  3 //constant of the program that indicates the number of
 //workers threads
  
 
@@ -35,7 +35,7 @@ void* calculate_pi(void* rqts){
     FILE* fp = fopen(rqts_pt->name, "a");
     int result;
     if(fp != NULL){
-        usleep(rqts_pt->time_waiting);
+        usleep(rqts_pt->time_waiting * 1000);
         result = rqts_pt->digits_pi * rqts_pt->time_waiting;
         fprintf(fp, "requisição %d: digits(%d) * time_waiting(%d) results %d\n", rqts_pt->cur_request, rqts_pt->digits_pi, rqts_pt->time_waiting, result);
     }else{
@@ -45,20 +45,18 @@ void* calculate_pi(void* rqts){
     return NULL;
 }
 int check_thread_is_free(pthread_t threads[]){
-    int i = (rand() % N_WTHREADS);
-    int status;
-    for(i; i < N_WTHREADS;){
-        status = pthread_kill(threads[i], 0);
-        if (status == 0) {
-            printf("Thread is occupied.\n");
-            i++;
-        }else if (status == ESRCH) {
-            printf("Thread is free.\n");
-            return i;
+    int status_thread;
+    int flag = TRUE;
+    while(flag){
+        int index_thread = (rand() % ((N_WTHREADS - 1) - 0 + 1));
+        status_thread = pthread_kill(threads[index_thread], 0);
+        if (status_thread == 0) {
+            printf("Thread %d is occupied.\n", index_thread);
+        }else if (status_thread == ESRCH) {
+            printf("Thread %d is free.\n", index_thread);
+            return index_thread;
         }
     }
-    if(i == N_WTHREADS)
-        check_thread_is_free(threads);
 }
 
 /**
@@ -160,7 +158,7 @@ void server(FILE *fp){
  * @return int 
  */
 int main(){
-    srand(time(0));
+    srand(time(NULL));
     FILE *fp = fopen("requests.txt", "w");
     if(fp != NULL){
         int digits = 0, time_waiting = 0;
