@@ -1,11 +1,4 @@
-requisição 1: digits(26) * time_waiting(1400) results 36400
-requisição 20: digits(34) * time_waiting(1439) results 48926
-requisição 26: digits(58) * time_waiting(905) results 52490
-requisição 40: digits(60) * time_waiting(1092) results 65520
-requisição 51: digits(73) * time_waiting(595) results 43435
-requisição 61: digits(72) * time_waiting(917) results 66024
-requisição 71: digits(52) * time_waiting(572) results 29744
-requisição 78: digits(51) * time_waiting(1398) results 71298
-requisição 89: digits(33) * time_waiting(1212) results 39996
-requisição 97: digits(29) * time_waiting(1239) results 35931
-requisição 99: digits(52) * time_waiting(1420) results 73840
+rqts 1: Pi with 74 digits = 3.142857142857142857142857142857142857142857142857142857142857142857142857142857 
+rqts 2: Pi with 50 digits = 3.1428571428571428571428571428571428571428571428571428571429 
+rqts 3: Pi with 26 digits = 3.142857142857142857142857142857142857143 
+rqts 6: Pi with 64 digits = 3.1428571428571428571428571428571428571428571428571428571429 

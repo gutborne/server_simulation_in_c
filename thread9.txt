@@ -1,0 +1,11 @@
+requisição 9: digits(52) * time_waiting(1190) results 61880
+requisição 18: digits(39) * time_waiting(1278) results 49842
+requisição 29: digits(17) * time_waiting(1327) results 22559
+requisição 39: digits(100) * time_waiting(1247) results 124700
+requisição 48: digits(24) * time_waiting(971) results 23304
+requisição 60: digits(19) * time_waiting(1219) results 23161
+requisição 68: digits(61) * time_waiting(852) results 51972
+requisição 75: digits(26) * time_waiting(1278) results 33228
+requisição 88: digits(60) * time_waiting(1281) results 76860
+requisição 98: digits(63) * time_waiting(775) results 48825
+requisição 99: digits(52) * time_waiting(1420) results 73840

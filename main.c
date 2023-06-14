@@ -5,11 +5,13 @@
 #include <time.h>
 #include <unistd.h>
 #include <signal.h>
+#include <math.h>
+#include <gmp.h>
 #define TRUE 1
 #define FALSE 0
-#define n_requests 100 //number of requests
+#define n_requests 10 //number of requests
 #define time_request 100000//100000 microseconds = 100 milliseconds
-#define N_WTHREADS  20 //constant of the program that indicates the number of
+#define N_WTHREADS  2 //constant of the program that indicates the number of
 //workers threads
  
 
@@ -25,25 +27,111 @@ typedef struct requests_{
     int cur_request;
 }requests;
 
+
+void calculatePi(int digits) {
+   
+   
+}
+
+
 /**
  * @brief 
  * 
  * @param requests 
  */
+/*
 void* calculate_pi(void* rqts){
     requests* rqts_pt = (requests*)rqts;
     FILE* fp = fopen(rqts_pt->name, "a");
     int result;
+    //double pi = 0.0;
+    //int sign = 1;
+    int i;
+    mpf_t term, pi;
+    mpf_inits(term, pi);
+
+
     if(fp != NULL){
+        for (i = 0; i < rqts_pt->digits_pi; ++i) {
+            double term = 1.0 / (2 * i + 1);
+            pi += sign * term;
+            sign *= -1;
+        }
+        pi *= 4;
+       // printf("\n", rqts_pt->digits_pi, pi);
         usleep(rqts_pt->time_waiting * 1000);
-        result = rqts_pt->digits_pi * rqts_pt->time_waiting;
-        fprintf(fp, "requisição %d: digits(%d) * time_waiting(%d) results %d\n", rqts_pt->cur_request, rqts_pt->digits_pi, rqts_pt->time_waiting, result);
+        gmp_fprintf(fp, "request %d: Pi with %d digits = %f | time_waiting -> %d \n", rqts_pt->cur_request, rqts_pt->digits_pi, pi, rqts_pt->time_waiting);
+    }else{
+        printf("ERROR IN OPEN THE FILE!");
+    }
+    fclose(fp);
+    return NULL;
+}*/
+
+
+void* calculate_pi(void* rqts){
+    requests* rqts_pt = (requests*)rqts;
+    FILE* fp = fopen(rqts_pt->name, "a");
+    mpz_t num_z, den_z;
+    mpf_t pi, numerator, denominator; 
+    mpf_set_default_prec(rqts_pt->digits_pi * 3);
+    mpz_inits(num_z, den_z, NULL);
+    mpf_inits(pi, numerator, denominator, NULL);
+    mpz_set_si(num_z, 22);
+    mpz_set_si(den_z, 7);
+    mpf_set_z(numerator, num_z);
+    mpf_set_z(denominator, den_z);
+    if(fp != NULL){
+        mpf_div(pi, numerator, denominator);
+        //gmp_printf("Pi: %Zd\n", pi);
+        //gmp_fprintf(fp, "rqts %d: Pi with %d digits = %.*Ff | time_waiting -> %d \n", rqts_pt->cur_request, rqts_pt->digits_pi, pi, rqts_pt->time_waiting);
+        gmp_fprintf(fp, "rqts %d: Pi with %d digits = %.Ff \n", rqts_pt->cur_request, rqts_pt->digits_pi, pi);
+        mpz_clears(num_z, den_z, NULL);
+        mpf_clears(numerator, denominator, pi, NULL);
     }else{
         printf("ERROR IN OPEN THE FILE!");
     }
     fclose(fp);
     return NULL;
 }
+
+/*
+void* calculate_pi(void* rqts){
+    requests* rqts_pt = (requests*)rqts;
+    FILE* fp = fopen(rqts_pt->name, "a");
+    mpz_t num, den;
+    mpf_t result, denominator;
+    mpz_inits(num, den, NULL);
+    mpf_inits(result, denominator, NULL);
+    mpf_set_default_prec(rqts_pt->digits_pi * 4); // Multiply by 4 for sufficient precision
+
+    // Set the numerator and denominator
+    mpz_set_si(num, 22);
+    mpz_set_si(den, 7);
+    if(fp != NULL){
+        // Perform the division
+        mpf_set_z(result, num);
+        mpf_set_z(denominator, den);
+        mpf_div(result, result, denominator);
+
+        // Convert the result to a string with the desired precision
+        char* resultStr = (char*)malloc((rqts_pt->digits_pi + 2) * sizeof(char));
+        mp_exp_t exp;
+        mpf_get_str(resultStr, &exp, 10, rqts_pt->digits_pi, result);
+        
+        //gmp_fprintf(fp, "rqts %d: Pi with %d digits = %.*Ff | time_waiting -> %d \n", rqts_pt->cur_request, rqts_pt->digits_pi, pi, rqts_pt->time_waiting);
+        fprintf(fp, "rqts %d: Pi with %d digits = %s \n", rqts_pt->cur_request, rqts_pt->digits_pi, resultStr);
+        mpz_clears(num, den, NULL);
+        mpf_clear(result);
+        free(resultStr);
+    }else{
+        printf("ERROR IN OPEN THE FILE!");
+    }
+    fclose(fp);
+    return NULL;
+}
+*/
+
 int check_thread_is_free(pthread_t threads[]){
     int status_thread;
     int flag = TRUE;
