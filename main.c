@@ -9,9 +9,9 @@
 #include <gmp.h>
 #define TRUE 1
 #define FALSE 0
-#define n_requests 10 //number of requests
+#define n_requests 1000 //number of requests
 #define time_request 100000//100000 microseconds = 100 milliseconds
-#define N_WTHREADS  2 //constant of the program that indicates the number of
+#define N_WTHREADS  5 //constant of the program that indicates the number of
 //workers threads
  
 
@@ -20,57 +20,28 @@
  * 
  */
 typedef struct requests_{
+    int thread_id;
     char* name;
     int digits_pi;
     int time_waiting;
-    int n_rqts_processed;
+    int* n_rqts_processed;
     int cur_request;
 }requests;
 
 
-void calculatePi(int digits) {
-   
-   
-}
+
+
 
 
 /**
  * @brief 
  * 
- * @param requests 
+ * @param rqts 
+ * @return void* 
  */
-/*
 void* calculate_pi(void* rqts){
     requests* rqts_pt = (requests*)rqts;
-    FILE* fp = fopen(rqts_pt->name, "a");
-    int result;
-    //double pi = 0.0;
-    //int sign = 1;
-    int i;
-    mpf_t term, pi;
-    mpf_inits(term, pi);
-
-
-    if(fp != NULL){
-        for (i = 0; i < rqts_pt->digits_pi; ++i) {
-            double term = 1.0 / (2 * i + 1);
-            pi += sign * term;
-            sign *= -1;
-        }
-        pi *= 4;
-       // printf("\n", rqts_pt->digits_pi, pi);
-        usleep(rqts_pt->time_waiting * 1000);
-        gmp_fprintf(fp, "request %d: Pi with %d digits = %f | time_waiting -> %d \n", rqts_pt->cur_request, rqts_pt->digits_pi, pi, rqts_pt->time_waiting);
-    }else{
-        printf("ERROR IN OPEN THE FILE!");
-    }
-    fclose(fp);
-    return NULL;
-}*/
-
-
-void* calculate_pi(void* rqts){
-    requests* rqts_pt = (requests*)rqts;
+    usleep(rqts_pt->time_waiting * 100);
     FILE* fp = fopen(rqts_pt->name, "a");
     mpz_t num_z, den_z;
     mpf_t pi, numerator, denominator; 
@@ -83,8 +54,7 @@ void* calculate_pi(void* rqts){
     mpf_set_z(denominator, den_z);
     if(fp != NULL){
         mpf_div(pi, numerator, denominator);
-        //gmp_printf("Pi: %Zd\n", pi);
-        //gmp_fprintf(fp, "rqts %d: Pi with %d digits = %.*Ff | time_waiting -> %d \n", rqts_pt->cur_request, rqts_pt->digits_pi, pi, rqts_pt->time_waiting);
+        rqts_pt->n_rqts_processed[rqts_pt->thread_id]++;
         gmp_fprintf(fp, "rqts %d: Pi with %d digits = %.Ff \n", rqts_pt->cur_request, rqts_pt->digits_pi, pi);
         mpz_clears(num_z, den_z, NULL);
         mpf_clears(numerator, denominator, pi, NULL);
@@ -95,42 +65,6 @@ void* calculate_pi(void* rqts){
     return NULL;
 }
 
-/*
-void* calculate_pi(void* rqts){
-    requests* rqts_pt = (requests*)rqts;
-    FILE* fp = fopen(rqts_pt->name, "a");
-    mpz_t num, den;
-    mpf_t result, denominator;
-    mpz_inits(num, den, NULL);
-    mpf_inits(result, denominator, NULL);
-    mpf_set_default_prec(rqts_pt->digits_pi * 4); // Multiply by 4 for sufficient precision
-
-    // Set the numerator and denominator
-    mpz_set_si(num, 22);
-    mpz_set_si(den, 7);
-    if(fp != NULL){
-        // Perform the division
-        mpf_set_z(result, num);
-        mpf_set_z(denominator, den);
-        mpf_div(result, result, denominator);
-
-        // Convert the result to a string with the desired precision
-        char* resultStr = (char*)malloc((rqts_pt->digits_pi + 2) * sizeof(char));
-        mp_exp_t exp;
-        mpf_get_str(resultStr, &exp, 10, rqts_pt->digits_pi, result);
-        
-        //gmp_fprintf(fp, "rqts %d: Pi with %d digits = %.*Ff | time_waiting -> %d \n", rqts_pt->cur_request, rqts_pt->digits_pi, pi, rqts_pt->time_waiting);
-        fprintf(fp, "rqts %d: Pi with %d digits = %s \n", rqts_pt->cur_request, rqts_pt->digits_pi, resultStr);
-        mpz_clears(num, den, NULL);
-        mpf_clear(result);
-        free(resultStr);
-    }else{
-        printf("ERROR IN OPEN THE FILE!");
-    }
-    fclose(fp);
-    return NULL;
-}
-*/
 
 int check_thread_is_free(pthread_t threads[]){
     int status_thread;
@@ -168,6 +102,26 @@ void clean_files_wthreads(){
     fclose(fp);
 }
 
+
+void initialize_with_zero(int* ptr){
+    for(int i = 0; i < N_WTHREADS; i++)
+        ptr[i] = 0;
+}
+
+void print_n_rqts_for_file(int* ptr_n_rqts_processed){
+    FILE* file_ptr = NULL;
+    char thread_name[20];
+    for(int i = 0; i < N_WTHREADS; i++){
+        sprintf(thread_name, "%s%d%s", "thread", i, ".txt");
+        file_ptr = fopen(thread_name, "a");
+        if(file_ptr != NULL){
+            fprintf(file_ptr, "thread %d = %d requests processed\n", i, ptr_n_rqts_processed[i]);
+            fclose(file_ptr);
+        }
+    }
+    
+}
+
 /**
  * @brief 
  * 
@@ -182,6 +136,11 @@ void* dispatcher_thread_function(void *fp){
     requests* rqts_pt = malloc(sizeof(requests));
     rqts_pt->name = malloc(20*sizeof(char));
     clean_files_wthreads();
+    //
+    int *ptr_n_rqts_processed = malloc(sizeof(int) * N_WTHREADS);
+    initialize_with_zero(ptr_n_rqts_processed);
+    rqts_pt->n_rqts_processed = ptr_n_rqts_processed;
+    //
     if(requests_file != NULL){
         while(fscanf(fp, "%d;%d", &digits, &time_waiting) != EOF){
             if((ct_threads < N_WTHREADS) && (flag == TRUE)){
@@ -189,6 +148,7 @@ void* dispatcher_thread_function(void *fp){
                 rqts_pt->cur_request = cur_processed_rqt;
                 rqts_pt->digits_pi=digits;
                 rqts_pt->time_waiting = time_waiting;
+                rqts_pt->thread_id = ct_threads; 
                 if(pthread_create(&worker_threads[ct_threads], NULL, calculate_pi, (void*)rqts_pt) != 0){
                     perror("-1");
                 }
@@ -202,6 +162,7 @@ void* dispatcher_thread_function(void *fp){
                 rqts_pt->digits_pi=digits;
                 rqts_pt->time_waiting = time_waiting;
                 rqts_pt->cur_request = cur_processed_rqt;
+                rqts_pt->thread_id = c;
                 if(pthread_create(&worker_threads[c], NULL, calculate_pi, (void*)rqts_pt) != 0){
                     perror("-1");
                 }
@@ -211,8 +172,10 @@ void* dispatcher_thread_function(void *fp){
             }
             cur_processed_rqt++;
             usleep(time_request);
-        }
-    }else{
+        }        
+        print_n_rqts_for_file(ptr_n_rqts_processed);
+
+    }else{  
         printf("ERROR IN OPEN THE FILE!");
     }
     free(rqts_pt->name);
@@ -269,3 +232,75 @@ int main(){
     fclose(fp);
     return 0;
 }
+
+
+
+/*
+void* calculate_pi(void* rqts){
+    requests* rqts_pt = (requests*)rqts;
+    FILE* fp = fopen(rqts_pt->name, "a");
+    mpz_t num, den;
+    mpf_t result, denominator;
+    mpz_inits(num, den, NULL);
+    mpf_inits(result, denominator, NULL);
+    mpf_set_default_prec(rqts_pt->digits_pi * 4); // Multiply by 4 for sufficient precision
+
+    // Set the numerator and denominator
+    mpz_set_si(num, 22);
+    mpz_set_si(den, 7);
+    if(fp != NULL){
+        // Perform the division
+        mpf_set_z(result, num);
+        mpf_set_z(denominator, den);
+        mpf_div(result, result, denominator);
+
+        // Convert the result to a string with the desired precision
+        char* resultStr = (char*)malloc((rqts_pt->digits_pi + 2) * sizeof(char));
+        mp_exp_t exp;
+        mpf_get_str(resultStr, &exp, 10, rqts_pt->digits_pi, result);
+        
+        //gmp_fprintf(fp, "rqts %d: Pi with %d digits = %.*Ff | time_waiting -> %d \n", rqts_pt->cur_request, rqts_pt->digits_pi, pi, rqts_pt->time_waiting);
+        fprintf(fp, "rqts %d: Pi with %d digits = %s \n", rqts_pt->cur_request, rqts_pt->digits_pi, resultStr);
+        mpz_clears(num, den, NULL);
+        mpf_clear(result);
+        free(resultStr);
+    }else{
+        printf("ERROR IN OPEN THE FILE!");
+    }
+    fclose(fp);
+    return NULL;
+}
+*/
+/**
+ * @brief 
+ * 
+ * @param requests 
+ */
+/*
+void* calculate_pi(void* rqts){
+    requests* rqts_pt = (requests*)rqts;
+    FILE* fp = fopen(rqts_pt->name, "a");
+    int result;
+    //double pi = 0.0;
+    //int sign = 1;
+    int i;
+    mpf_t term, pi;
+    mpf_inits(term, pi);
+
+
+    if(fp != NULL){
+        for (i = 0; i < rqts_pt->digits_pi; ++i) {
+            double term = 1.0 / (2 * i + 1);
+            pi += sign * term;
+            sign *= -1;
+        }
+        pi *= 4;
+       // printf("\n", rqts_pt->digits_pi, pi);
+        usleep(rqts_pt->time_waiting * 1000);
+        gmp_fprintf(fp, "request %d: Pi with %d digits = %f | time_waiting -> %d \n", rqts_pt->cur_request, rqts_pt->digits_pi, pi, rqts_pt->time_waiting);
+    }else{
+        printf("ERROR IN OPEN THE FILE!");
+    }
+    fclose(fp);
+    return NULL;
+}*/
