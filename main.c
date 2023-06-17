@@ -7,9 +7,9 @@
 #include <signal.h>
 #define TRUE 1
 #define FALSE 0
-#define n_requests 100 //number of requests
+#define n_requests 20 //number of requests
 #define time_request 100000//100000 microseconds = 100 milliseconds
-#define N_WTHREADS  20 //constant of the program that indicates the number of
+#define N_WTHREADS  2 //constant of the program that indicates the number of
 //workers threads
  
 

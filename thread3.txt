@@ -1,8 +1,5 @@
-requisição 3: digits(62) * time_waiting(979) results 60698
-requisição 31: digits(46) * time_waiting(539) results 24794
-requisição 42: digits(28) * time_waiting(1253) results 35084
-requisição 50: digits(89) * time_waiting(1213) results 107957
-requisição 70: digits(53) * time_waiting(849) results 44997
-requisição 84: digits(63) * time_waiting(790) results 49770
-requisição 93: digits(97) * time_waiting(1314) results 127458
-requisição 99: digits(52) * time_waiting(1420) results 73840
+requisição 3: digits(94) * time_waiting(1054) results 99076
+requisição 50: digits(57) * time_waiting(849) results 48393
+requisição 63: digits(82) * time_waiting(1248) results 102336
+requisição 74: digits(38) * time_waiting(620) results 23560
+requisição 86: digits(37) * time_waiting(661) results 24457

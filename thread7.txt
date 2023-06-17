@@ -1,0 +1,6 @@
+requisição 7: digits(76) * time_waiting(1182) results 89832
+requisição 30: digits(97) * time_waiting(831) results 80607
+requisição 39: digits(44) * time_waiting(1301) results 57244
+requisição 47: digits(79) * time_waiting(634) results 50086
+requisição 59: digits(23) * time_waiting(1094) results 25162
+requisição 99: digits(-79780912) * time_waiting(652) results -477547072
