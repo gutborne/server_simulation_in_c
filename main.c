@@ -5,45 +5,63 @@
 #include <time.h>
 #include <unistd.h>
 #include <signal.h>
+#include <math.h>
+#include <gmp.h>
 #define TRUE 1
 #define FALSE 0
-#define n_requests 20 //number of requests
+#define n_requests  10//number of requests
 #define time_request 100000//100000 microseconds = 100 milliseconds
 #define N_WTHREADS  2 //constant of the program that indicates the number of
-//workers threads
- 
-//fix_testPinumber is derivated from testWorkerTtheradisFree
-/**
- * @brief 
- * 
- */
+//worker threads. Besides, it must be greater than zero, otherwise the pro-
+//gram won't work.
+
+
+
 typedef struct requests_{
+    int thread_id;
     char* name;
     int digits_pi;
     int time_waiting;
-    int n_rqts_processed;
+    int* n_rqts_processed;
     int cur_request;
 }requests;
+
+
+
 
 /**
  * @brief 
  * 
- * @param requests 
+ * @param rqts 
+ * @return void* 
  */
 void* calculate_pi(void* rqts){
     requests* rqts_pt = (requests*)rqts;
+    usleep(rqts_pt->time_waiting);
     FILE* fp = fopen(rqts_pt->name, "a");
-    int result;
+    mpz_t num_z, den_z;
+    mpf_t pi, numerator, denominator; 
+    mpf_set_default_prec(rqts_pt->digits_pi * 3);
+    mpz_inits(num_z, den_z, NULL);
+    mpf_inits(pi, numerator, denominator, NULL);
+    mpz_set_si(num_z, 22);
+    mpz_set_si(den_z, 7);
+    mpf_set_z(numerator, num_z);
+    mpf_set_z(denominator, den_z);
     if(fp != NULL){
-        usleep(rqts_pt->time_waiting * 1000);
-        result = rqts_pt->digits_pi * rqts_pt->time_waiting;
-        fprintf(fp, "requisição %d: digits(%d) * time_waiting(%d) results %d\n", rqts_pt->cur_request, rqts_pt->digits_pi, rqts_pt->time_waiting, result);
+        mpf_div(pi, numerator, denominator);
+        rqts_pt->n_rqts_processed[rqts_pt->thread_id]++;
+        gmp_fprintf(fp, "rqts %d: Pi with %d digits = %.Ff \n", rqts_pt->cur_request, rqts_pt->digits_pi, pi);
+        mpz_clears(num_z, den_z, NULL);
+        mpf_clears(numerator, denominator, pi, NULL);
     }else{
         printf("ERROR IN OPEN THE FILE!");
     }
     fclose(fp);
     return NULL;
 }
+
+
 int check_thread_is_free(pthread_t threads[]){
     int status_thread;
     int flag = TRUE;
@@ -60,9 +78,9 @@ int check_thread_is_free(pthread_t threads[]){
 }
 
 /**
- * @brief the aim of this function is clean the requests of the worker thread files
- * if they were already created in previous executions of this program in order to get
- * rid of these previous ones and maintain just the current ones.
+ * @brief the aim of this function is clean the content of the requests of the worker 
+ * thread files if they were already created in previous executions of this program in
+ *  order to get rid of these previous ones and maintain just the current ones.
  */
 void clean_files_wthreads(){
     int counter = 0;
@@ -80,10 +98,30 @@ void clean_files_wthreads(){
     fclose(fp);
 }
 
+
+void initialize_with_zero(int* ptr){
+    for(int i = 0; i < N_WTHREADS; i++)
+        ptr[i] = 0;
+}
+
+void print_n_rqts_for_file(int* ptr_n_rqts_processed){
+    FILE* file_ptr = NULL;
+    char thread_name[20];
+    for(int i = 0; i < N_WTHREADS; i++){
+        sprintf(thread_name, "%s%d%s", "thread", i, ".txt");
+        file_ptr = fopen(thread_name, "a");
+        if(file_ptr != NULL){
+            fprintf(file_ptr, "thread %d = %d requests processed\n", i, ptr_n_rqts_processed[i]);
+            fclose(file_ptr);
+        }
+    }
+    
+}
+
 /**
- * @brief 
- * 
- * @param fp 
+ * @brief The function executed by the dispatcher thread.
+ * @param fp Pointer to the file containing the requests.
+ * @return void*
  */
 void* dispatcher_thread_function(void *fp){
     pthread_t worker_threads[N_WTHREADS];
@@ -94,6 +132,11 @@ void* dispatcher_thread_function(void *fp){
     requests* rqts_pt = malloc(sizeof(requests));
     rqts_pt->name = malloc(20*sizeof(char));
     clean_files_wthreads();
+    //
+    int *ptr_n_rqts_processed = malloc(sizeof(int) * N_WTHREADS);
+    initialize_with_zero(ptr_n_rqts_processed);
+    rqts_pt->n_rqts_processed = ptr_n_rqts_processed;
+    //
     if(requests_file != NULL){
         while(fscanf(fp, "%d;%d", &digits, &time_waiting) != EOF){
             if((ct_threads < N_WTHREADS) && (flag == TRUE)){
@@ -101,6 +144,7 @@ void* dispatcher_thread_function(void *fp){
                 rqts_pt->cur_request = cur_processed_rqt;
                 rqts_pt->digits_pi=digits;
                 rqts_pt->time_waiting = time_waiting;
+                rqts_pt->thread_id = ct_threads; 
                 if(pthread_create(&worker_threads[ct_threads], NULL, calculate_pi, (void*)rqts_pt) != 0){
                     perror("-1");
                 }
@@ -114,6 +158,7 @@ void* dispatcher_thread_function(void *fp){
                 rqts_pt->digits_pi=digits;
                 rqts_pt->time_waiting = time_waiting;
                 rqts_pt->cur_request = cur_processed_rqt;
+                rqts_pt->thread_id = c;
                 if(pthread_create(&worker_threads[c], NULL, calculate_pi, (void*)rqts_pt) != 0){
                     perror("-1");
                 }
@@ -123,10 +168,13 @@ void* dispatcher_thread_function(void *fp){
             }
             cur_processed_rqt++;
             usleep(time_request);
-        }
-    }else{
+        }        
+        print_n_rqts_for_file(ptr_n_rqts_processed);
+
+    }else{  
         printf("ERROR IN OPEN THE FILE!");
     }
+    free(ptr_n_rqts_processed);
     free(rqts_pt->name);
     free(rqts_pt);
     pthread_exit(NULL);
@@ -135,10 +183,9 @@ void* dispatcher_thread_function(void *fp){
 
 
 /**
- * * @brief this function will receive the requests, instantiate the worker threads and
- * the dispatcher thread to help the server to process the requests of the clients.
+ ** @brief this function will receive the requests and create the dispatcher 
+ * thread for help the server to process the requests of the clients.
  * @param fp //pointer to the archive
- * @param n_threads //number of worker threads
  */
 void server(FILE *fp){
     int r = 0;
