@@ -9,7 +9,7 @@
 #include <gmp.h>
 #define TRUE 1
 #define FALSE 0
-#define n_requests  20//number of requests
+#define n_requests  40//number of requests
 #define time_request 100000//100000 microseconds = 100 milliseconds
 #define N_WTHREADS  2 //constant of the program that indicates the number of worker 
 //threads. Besides, IT MUST BE GREATER THAN ZERO, OTHERWISE THE PROGRAM WON'T WORK.
@@ -36,7 +36,7 @@ typedef struct requests_{
  */
 void* calculate_pi(void* rqts){
     requests* rqts_pt = (requests*)rqts;
-    usleep(rqts_pt->time_waiting);
+    usleep(rqts_pt->time_waiting * 70);
     FILE* fp = fopen(rqts_pt->name, "a");
     mpz_t num_z, den_z;
     mpf_t pi, numerator, denominator; 
@@ -54,7 +54,7 @@ void* calculate_pi(void* rqts){
         mpf_div(pi, numerator, denominator);
         //Update the count of requests processed by the thread
         rqts_pt->n_rqts_processed[rqts_pt->thread_id]++;
-        gmp_fprintf(fp, "rqts %d: Pi with %d digits = %.Ff \n", rqts_pt->cur_request, rqts_pt->digits_pi, pi);
+        gmp_fprintf(fp, "REQUEST %d -> Digits: %d Time_waiting: %d Pi: %.Ff \n", rqts_pt->cur_request, rqts_pt->digits_pi, rqts_pt->time_waiting, pi);
         //Clear the memory used by the variables
         mpz_clears(num_z, den_z, NULL);
         mpf_clears(numerator, denominator, pi, NULL);
@@ -131,7 +131,7 @@ void print_n_rqts_for_file(int* ptr_n_rqts_processed){
         sprintf(thread_name, "%s%d%s", "thread", i, ".txt");
         file_ptr = fopen(thread_name, "a");
         if(file_ptr != NULL){
-            fprintf(file_ptr, "thread %d = %d requests processed\n", i, ptr_n_rqts_processed[i]);
+            fprintf(file_ptr, "Thread %d = %d requests processed.\n", i, ptr_n_rqts_processed[i]);
             fclose(file_ptr);
         }
     }
@@ -150,7 +150,7 @@ void print_n_rqts_for_file(int* ptr_n_rqts_processed){
 void set_values_for_request(requests* rqts_pt, int digits, int time_waiting, int cur_processed_rqt, int index){
     rqts_pt->cur_request = cur_processed_rqt;
     rqts_pt->digits_pi=digits;
-    rqts_pt->time_waiting = time_waiting * 70;
+    rqts_pt->time_waiting = time_waiting;
     rqts_pt->thread_id = index;
 }
 
